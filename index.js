@@ -35,10 +35,26 @@ app.get('/', function(request, response) {
   response.render('home', {user: nameOfUser});
 });
 
+app.get('/AllPages', function(request, response) {
+  fs.readdir('pages', function(err, pages) {
+    if (err) {
+      console.log(err);
+      return;
+    } else {
+      var noExt = pages.map(function(idx) {
+       var newIdx =idx.replace(/\.[^/.]+$/, "");
+       return newIdx;
+      });
+      console.log(noExt);
+      response.render('AllPages.hbs', {somePages: noExt});
+    }
+  });
+});
+
 app.get('/:pageName', function (request, response) {
   var pagename = request.params.pageName;
   var page = 'pages/' + pagename + '.txt';
-  console.log(pagename);
+  // console.log(pagename);
   fs.access(page, fs.F_OK, function(err) {
     if (err) {
       response.render('placeholder', {pageName: request.params.pageName});
@@ -104,18 +120,6 @@ function authRequired(request, response, next) {
     next();
   }
 }
-
-app.get('/AllPages', function(request, response) {
-  fs.readdir('/pages', function(err, pages){
-    if (err) {
-      console.log(err);
-      return;
-    } else {
-      console.log('is this all pages?', pages);
-      response.render('AllPages.hbs');
-    }
-  });
-});
 
 app.listen(8080, function() {
   console.log("listening on 8080");
