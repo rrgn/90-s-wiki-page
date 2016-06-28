@@ -121,6 +121,11 @@ function authRequired(request, response, next) {
   }
 }
 
+app.get('/logout', function(request, response) {
+    request.session.user = null;
+    response.redirect('/');
+});
+
 app.listen(8080, function() {
   console.log("listening on 8080");
 });
