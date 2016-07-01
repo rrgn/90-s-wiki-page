@@ -5,7 +5,9 @@ var fs = require('fs');
 var wikiLinkify = require('wiki-linkify');
 app.set('view engine', 'hbs');
 var session = require('express-session');
-
+var mongoose = require('mongoose');
+var Page = require('./page-model');
+mongoose.connect('mongodb://localhost/wiki-db');
 app.use(session({
   secret: 'theBirdIsTheWord',
   cookie: {
@@ -54,32 +56,47 @@ app.get('/AllPages', function(request, response) {
 app.get('/:pageName', function (request, response) {
   var pagename = request.params.pageName;
   var page = 'pages/' + pagename + '.txt';
-  // console.log(pagename);
-  fs.access(page, fs.F_OK, function(err) {
-    if (err) {
+  console.log('inside pagename');
+
+  Page.findById(pagename, function(err, page) {
+    if (!page) {
       response.render('placeholder', {pageName: request.params.pageName});
     } else {
-      fs.readFile(page, function(err, buffer) {
         var string = buffer.toString();
         var wikiContent = wikiLinkify(string);
-        if (err) {
-          console.log('Error',err);
-          return;
-        }
         response.render('show-text.hbs', {
-        contents: wikiContent,
-        pageName: pagename
+        pagename: pageName,
+        contents: Page.content
         });
-      });
-    }
-  });
+      }
+    });
 });
+//   fs.access(page, fs.F_OK, function(err) {
+//     if (err) {
+//       response.render('placeholder', {pageName: request.params.pageName});
+//     } else {
+//       fs.readFile(page, function(err, buffer) {
+//         var string = buffer.toString();
+//         var wikiContent = wikiLinkify(string);
+//         if (err) {
+//           console.log('Error',err);
+//           return;
+//         }
+//         response.render('show-text.hbs', {
+//         contents: wikiContent,
+//         pageName: pagename
+//         });
+//       });
+//     }
+//   });
+// });
 
-app.get('/:pageName/edit', authRequired, function(request, response) {
+app.get('/:pageName/edit', function(request, response) {
   var pageName = request.params.pageName;
   var page = 'pages/' + pageName + '.txt';
-  fs.readFile(page, function(err, buffer) {
-    if (err) {
+
+  Page.find(pageName, function(err, buffer) {
+    if (!buffer) {
       response.render('edit', {
         title: 'Edit ' + pageName,
         pageName: pageName
@@ -96,19 +113,47 @@ app.get('/:pageName/edit', authRequired, function(request, response) {
   });
 });
 
-app.post('/:pageName/save', authRequired, function(request, response) {
+
+//   fs.readFile(page, function(err, buffer) {
+//     if (err) {
+//       response.render('edit', {
+//         title: 'Edit ' + pageName,
+//         pageName: pageName
+//       });
+//       return;
+//     }
+//     var string = buffer.toString();
+//     console.log(string);
+//     response.render('edit', {
+//       title: 'Edit ' + pageName,
+//       pageName: pageName,
+//       contents: string
+//     });
+//   });
+// });
+
+app.post('/:pageName/save', function(request, response) {
   var data = request.body.contents;
   var pagename = request.params.pageName;
   var page = 'pages/' + pagename + '.txt';
-  fs.writeFile(page, data, function(err) {
-    if (err) {
-      console.log("Error", err);
+  Page.update(pagename, function (err, page) {
+    if (!page) {
+      console.log("Page does not exists");
       return;
     }
     console.log(data);
     response.redirect('/' + pagename);
   });
 });
+//   fs.writeFile(page, data, function(err) {
+//     if (err) {
+//       console.log("Error", err);
+//       return;
+//     }
+//     console.log(data);
+//     response.redirect('/' + pagename);
+//   });
+// });
 
 function authRequired(request, response, next) {
  request.session.requestUrl = request.url;
